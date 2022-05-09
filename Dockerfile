@@ -2,8 +2,9 @@
 FROM node:14 AS frontend-builder
 
 ENV NPM_CACHE_LOCATION=/root/.npm \
-    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-
+    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    DOCKER_BUILDKIT=1
+    
 WORKDIR /label-studio/label_studio/frontend
 
 COPY label_studio/frontend .
