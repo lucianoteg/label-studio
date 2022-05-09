@@ -17,7 +17,6 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.views import exception_handler
-from django.http import Http404
 
 from core.utils.common import temporary_disconnect_all_signals
 from core.label_config import config_essential_data_has_changed
@@ -393,11 +392,7 @@ class ProjectTaskListAPI(generics.ListCreateAPIView,
     def filter_queryset(self, queryset):
         project = generics.get_object_or_404(Project.objects.for_user(self.request.user), pk=self.kwargs.get('pk', 0))
         tasks = Task.objects.filter(project=project)
-        page = paginator(tasks, self.request)
-        if page:
-            return page
-        else:
-            raise Http404
+        return paginator(tasks, self.request)
 
     def delete(self, request, *args, **kwargs):
         project = generics.get_object_or_404(Project.objects.for_user(self.request.user), pk=self.kwargs['pk'])
