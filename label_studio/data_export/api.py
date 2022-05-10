@@ -172,17 +172,44 @@ class ExportAPI(generics.RetrieveAPIView):
 
         logger.debug('Serialize tasks for export')
         tasks = []
+        i = 0
         for _task_ids in batch(task_ids, 1000):
-            tasks += ExportDataSerializer(
+            serialized_tasks = ExportDataSerializer(
                 self.get_task_queryset(query.filter(id__in=_task_ids)), many=True, expand=['drafts'],
                 context={'interpolate_key_frames': interpolate_key_frames}
             ).data
+            aggregated_tasks = []
+            for task in serialized_tasks:
+                #Temporal data structure that keeps mapping of each utterance paragraph end. 
+                utterance_map = []
+                for utterance in task["data"]["utterances"]:
+                    #Total offset of current evaluated string
+                    accum_length = 0 
+                    #Paragraph number mapped to their ending.
+                    paragraph_end_indexes = []
+                    for paragraph in utterance["paragraphs"]:
+                        accum_length += len(paragraph) - 1 
+                        paragraph_end_indexes.append(accum_length)
+                    utterance_map.append(paragraph_end_indexes)
+                for annotation in task["annotations"]:
+                    for result in annotation["result"]:
+                        result["value"]["tegus_utterance_start"] = result["value"]["start"]
+                        result["value"]["tegus_utterance_end"] = result["value"]["end"]
+                        utterance_iterable = utterance_map[int(result["value"]["start"])]
+                        for i, paragraph_end in enumerate(utterance_iterable):
+                            if result["value"]["startOffset"] < paragraph_end and "tegus_paragraph_start" not in result["value"]: 
+                                result["value"]["tegus_paragraph_start"] = i
+                                result["value"]["tegus_string_start"] =  result["value"]["startOffset"] if i == 0 else result["value"]["startOffset"] - 1 - utterance_iterable[i - 1]
+                            if result["value"]["endOffset"] <= paragraph_end: 
+                                result["value"]["tegus_paragraph_end"] = i
+                                result["value"]["tegus_string_end"] =result["value"]["endOffset"] if i == 0 else result["value"]["endOffset"] - 1 - utterance_iterable[i - 1] 
+                                break
+            tasks += serialized_tasks
         logger.debug('Prepare export files')
 
         export_stream, content_type, filename = DataExport.generate_export_file(
             project, tasks, export_type, download_resources, request.GET
         )
-
         response = HttpResponse(File(export_stream), content_type=content_type)
         response['Content-Disposition'] = 'attachment; filename="%s"' % filename
         response['filename'] = filename
