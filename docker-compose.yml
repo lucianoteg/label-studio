@@ -47,7 +47,7 @@ services:
       - LABEL_STUDIO_HOST=${LABEL_STUDIO_HOST:-}
       - LABEL_STUDIO_COPY_STATIC_DATA=true
       - LABEL_STUDIO_DISABLE_SIGNUP_WITHOUT_LINK=true
-      - LABEL_STUDIO_USERNAME=luciano.pinedo@tegus.com
+      - LABEL_STUDIO_USERNAME=luciano.pinedo2@tegus.com
       - LABEL_STUDIO_PASSWORD=f00bar!
     volumes:
       - ./mydata:/label-studio/data:rw
